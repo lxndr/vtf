@@ -1,6 +1,7 @@
 #ifndef __VTF_H__
 #define __VTF_H__
 
+#include <stdio.h>
 #include <glib.h>
 
 
@@ -41,6 +42,7 @@ typedef enum {
 	VTF_ERROR_INVALID,
 	VTF_ERROR_UNSUPPORTED,
 	VTF_ERROR_DIMENTION,
+	VTF_ERROR_FORMAT,
 	VTF_ERROR_RESOURCE
 } VtfErrorEnum;
 
@@ -55,6 +57,7 @@ void vtf_close (Vtf *vtf);
 guint vtf_get_width (Vtf *vtf);
 guint vtf_get_height (Vtf *vtf);
 guint vtf_get_format (Vtf *vtf);
+const gchar *vtf_get_format_name (gint format);
 guint vtf_get_frame_count (Vtf *vtf);
 void *vtf_get_image (Vtf *vtf, int frame);
 void *vtf_get_image_rgba (Vtf *vtf, int frame);

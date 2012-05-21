@@ -49,6 +49,12 @@ gdk_pixbuf__vtf_image_stop_load (gpointer context_ptr, GError **error)
 		goto err;
 	
 	guchar *data = vtf_get_image_rgba (vtf, 0);
+	if (!data) {
+		g_set_error (error, 0, 0, "Format %s is not supported",
+				vtf_get_format_name (vtf_get_format (vtf)));
+		goto err;
+	}
+	
 	gint width = vtf_get_width (vtf);
 	gint height = vtf_get_height (vtf);
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data (data, GDK_COLORSPACE_RGB,
