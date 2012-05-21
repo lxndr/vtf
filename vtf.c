@@ -160,33 +160,33 @@ vtf_get_format_name (gint format)
 	switch (format) {
 		case VTF_FORMAT_NONE:				return "None";
 		case VTF_FORMAT_RGBA8888:			return "RGBA8888";
-		case VTF_FORMAT_ABGR8888	:			return "ABGR8888";
+		case VTF_FORMAT_ABGR8888:			return "ABGR8888";
 		case VTF_FORMAT_RGB888:				return "RGB888";	
 		case VTF_FORMAT_BGR888:				return "BGR888";	
 		case VTF_FORMAT_RGB565:				return "RGB565";	
 		case VTF_FORMAT_I8:					return "I8";	
-		case VTF_FORMAT_IA88	:				return "IA88";
+		case VTF_FORMAT_IA88:				return "IA88";
 		case VTF_FORMAT_P8:					return "P8";
 		case VTF_FORMAT_A8:					return "A8";
 		case VTF_FORMAT_RGB888_BLUESCREEN:	return "RGB888_BLUESCREEN";
 		case VTF_FORMAT_BGR888_BLUESCREEN:	return "BGR888_BLUESCREEN";
-		case VTF_FORMAT_ARGB8888	:			return "ARGB8888";
+		case VTF_FORMAT_ARGB8888:			return "ARGB8888";
 		case VTF_FORMAT_BGRA8888:			return "BGRA8888";
-		case VTF_FORMAT_DXT1	:				return "DXT1";
-		case VTF_FORMAT_DXT3	:				return "DXT3";
-		case VTF_FORMAT_DXT5	:				return "DXT5";
-		case VTF_FORMAT_BGRX8888	:			return "BGRX8888";
+		case VTF_FORMAT_DXT1:				return "DXT1";
+		case VTF_FORMAT_DXT3:				return "DXT3";
+		case VTF_FORMAT_DXT5:				return "DXT5";
+		case VTF_FORMAT_BGRX8888:			return "BGRX8888";
 		case VTF_FORMAT_BGR565:				return "BGR565";
 		case VTF_FORMAT_BGRX5551:			return "BGRX5551";
 		case VTF_FORMAT_BGRA4444:			return "BGRA4444";
-		case VTF_FORMAT_DXT1_ONEBITALPHA	:	return "DXT1_ONEBITALPHA";
-		case VTF_FORMAT_BGRA5551	:			return "BGRA5551";
-		case VTF_FORMAT_UV88	:				return "UV88";
-		case VTF_FORMAT_UVWQ8888	:			return "UVWQ8888";
+		case VTF_FORMAT_DXT1_ONEBITALPHA:	return "DXT1_ONEBITALPHA";
+		case VTF_FORMAT_BGRA5551:			return "BGRA5551";
+		case VTF_FORMAT_UV88:				return "UV88";
+		case VTF_FORMAT_UVWQ8888:			return "UVWQ8888";
 		case VTF_FORMAT_RGBA16161616F:		return "RGBA16161616F";
 		case VTF_FORMAT_RGBA16161616:		return "RGBA16161616";
-		case VTF_FORMAT_UVLX8888	:			return "UVLX8888";
-		default:								return "Unknown";
+		case VTF_FORMAT_UVLX8888:			return "UVLX8888";
+		default:							return "Unknown";
 	}
 }
 
@@ -220,6 +220,12 @@ vtf_open_mem (gpointer data, gsize length, GError **error)
 	g_print ("Depth: %d\n", hdr.depth);
 	g_print ("Resource count: %d\n", hdr.resource_count);
 #endif
+	
+	if (memcmp (hdr.magic, "VTF", 4) != 0) {
+		g_set_error (error, VTF_ERROR, VTF_ERROR_INVALID,
+				"This is not VTF file");
+		goto err;
+	}
 	
 	if (!(is_power_of_two (hdr.width) && is_power_of_two (hdr.height))) {
 		g_set_error (error, VTF_ERROR, VTF_ERROR_DIMENTION,
