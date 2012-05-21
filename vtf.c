@@ -6,7 +6,7 @@
 #include "dxt.h"
 #include "vtf.h"
 
-/* Flags */
+/* flags */
 #define VTF_FLAG_POINTSAMPLE			0x00000001
 #define VTF_FLAG_TRILINEAR				0x00000002
 #define VTF_FLAG_CLAMPS					0x00000004
@@ -33,7 +33,7 @@
 #define VTF_FLAG_SSBUMP					0x08000000
 #define VTF_FLAG_BORDER					0x20000000
 
-/* Resource type */
+/* resource type */
 #define VTF_RESOURCE_LORES_IMAGE		0x00000001
 #define VTF_RESOURCE_HIRES_IMAGE		0x00000030
 
@@ -406,12 +406,58 @@ void *
 vtf_get_image_rgba (Vtf *vtf, int frame)
 {
 	int length = get_image_length (VTF_FORMAT_RGBA8888, vtf->width, vtf->height);
-	void *rgba_data = g_malloc (length);
-	void *data = vtf_get_image (vtf, frame);
+	guint8 *rgba_data = g_malloc (length);
+	guint8 *data = vtf_get_image (vtf, frame);
+	gint i, c;
 	
 	switch (vtf->format) {
 	case VTF_FORMAT_RGBA8888:
 		memcpy (rgba_data, data, length);
+		break;
+	case VTF_FORMAT_ABGR8888:
+		c = vtf->width * vtf->height;
+		for (i = 0; i < c; i++) {
+			rgba_data[i * 4 + 0] = data[i * 4 + 3];
+			rgba_data[i * 4 + 1] = data[i * 4 + 2];
+			rgba_data[i * 4 + 2] = data[i * 4 + 1];
+			rgba_data[i * 4 + 3] = data[i * 4 + 0];
+		}
+		break;
+	case VTF_FORMAT_RGB888:
+		c = vtf->width * vtf->height;
+		for (i = 0; i < c; i++) {
+			rgba_data[i * 4 + 0] = data[i * 3 + 0];
+			rgba_data[i * 4 + 1] = data[i * 3 + 1];
+			rgba_data[i * 4 + 2] = data[i * 3 + 2];
+			rgba_data[i * 4 + 3] = 255;
+		}		
+		break;
+	case VTF_FORMAT_BGR888:
+		c = vtf->width * vtf->height;
+		for (i = 0; i < c; i++) {
+			rgba_data[i * 4 + 0] = data[i * 3 + 2];
+			rgba_data[i * 4 + 1] = data[i * 3 + 1];
+			rgba_data[i * 4 + 2] = data[i * 3 + 0];
+			rgba_data[i * 4 + 3] = 255;
+		}		
+		break;
+	case VTF_FORMAT_ARGB8888:
+		c = vtf->width * vtf->height;
+		for (i = 0; i < c; i++) {
+			rgba_data[i * 4 + 0] = data[i * 4 + 3];
+			rgba_data[i * 4 + 1] = data[i * 4 + 0];
+			rgba_data[i * 4 + 2] = data[i * 4 + 1];
+			rgba_data[i * 4 + 3] = data[i * 4 + 2];
+		}
+		break;
+	case VTF_FORMAT_BGRA8888:
+		c = vtf->width * vtf->height;
+		for (i = 0; i < c; i++) {
+			rgba_data[i * 4 + 0] = data[i * 4 + 2];
+			rgba_data[i * 4 + 1] = data[i * 4 + 1];
+			rgba_data[i * 4 + 2] = data[i * 4 + 0];
+			rgba_data[i * 4 + 3] = data[i * 4 + 3];
+		}
 		break;
 	case VTF_FORMAT_DXT1:
 		dxt1_to_rgba (rgba_data, vtf->width, vtf->height, data);
