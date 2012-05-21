@@ -304,7 +304,6 @@ vtf_open_mem (gpointer data, gsize length, GError **error)
 	for (m = hdr.mipmap_count - 1; m > 0; m--) {
 		w = calc_mipmap_size (vtf->width, m);
 		h = calc_mipmap_size (vtf->height, m);
-		g_print (">> %d = %d %d\n", m, w, h);
 		l = get_image_length (vtf->format, w, h);
 		p += l * hdr.frames;
 	}

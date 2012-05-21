@@ -12,10 +12,15 @@ main (int argc, char **argv)
 	}
 	
 	void *data = vtf_get_image_rgba (vtf, 0);
-	if (!data)
+	if (!data) {
 		g_print ("Format %s is not supported\n", vtf_get_format_name (vtf_get_format (vtf)));
+		g_error_free (error);
+		vtf_close (vtf);
+		return -1;
+	}
 	g_free (data);
 	
 	vtf_close (vtf);
+	
 	return 0;
 }

@@ -39,6 +39,13 @@ gdk_pixbuf__vtf_image_begin_load (GdkPixbufModuleSizeFunc size_func,
 }
 
 
+static void
+free_buffer (guchar *pixels, gpointer data)
+{
+	g_free (pixels);
+}
+
+
 static gboolean
 gdk_pixbuf__vtf_image_stop_load (gpointer context_ptr, GError **error)
 {
@@ -58,10 +65,11 @@ gdk_pixbuf__vtf_image_stop_load (gpointer context_ptr, GError **error)
 	gint width = vtf_get_width (vtf);
 	gint height = vtf_get_height (vtf);
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data (data, GDK_COLORSPACE_RGB,
-			TRUE, 8, width, height, width * 4, NULL, NULL);
+			TRUE, 8, width, height, width * 4, free_buffer, NULL);
 	vtf_close (vtf);
 	
 	lc->prepared (pixbuf, NULL, lc->udata);
+	g_object_unref (pixbuf);
 	
 	g_byte_array_free (lc->buffer, TRUE);
 	g_slice_free (LoadContext, lc);
