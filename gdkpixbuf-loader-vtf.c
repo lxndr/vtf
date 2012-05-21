@@ -44,7 +44,7 @@ gdk_pixbuf__vtf_image_stop_load (gpointer context_ptr, GError **error)
 {
 	LoadContext *lc = context_ptr;
 	
-	Vtf *vtf = vtf_open_mem (lc->buffer->data, error);
+	Vtf *vtf = vtf_open_mem (lc->buffer->data, lc->buffer->len, error);
 	if (!vtf)
 		goto err;
 	

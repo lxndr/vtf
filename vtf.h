@@ -35,12 +35,22 @@
 #define VTF_FORMAT_UVLX8888				26
 
 
+#define VTF_ERROR vtf_error_quark ()
+
+typedef enum {
+	VTF_ERROR_INVALID,
+	VTF_ERROR_UNSUPPORTED,
+	VTF_ERROR_DIMENTION,
+	VTF_ERROR_RESOURCE
+} VtfErrorEnum;
+
+
 
 typedef struct _Vtf Vtf;
 
 Vtf *vtf_open (const gchar *fname, GError **error);
 Vtf *vtf_open_fd (FILE *fd, GError **error);
-Vtf *vtf_open_mem (gpointer data, GError **error);
+Vtf *vtf_open_mem (gpointer data, gsize length, GError **error);
 void vtf_close (Vtf *vtf);
 guint vtf_get_width (Vtf *vtf);
 guint vtf_get_height (Vtf *vtf);
@@ -48,5 +58,7 @@ guint vtf_get_format (Vtf *vtf);
 guint vtf_get_frame_count (Vtf *vtf);
 void *vtf_get_image (Vtf *vtf, int frame);
 void *vtf_get_image_rgba (Vtf *vtf, int frame);
+
+GQuark vtf_error_quark (void);
 
 #endif

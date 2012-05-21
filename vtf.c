@@ -88,6 +88,13 @@ struct _Vtf {
 };
 
 
+GQuark
+vtf_error_quark (void)
+{
+	return g_quark_from_static_string ("vtf-error-quark");
+}
+
+
 static gboolean
 is_power_of_two (guint16 n)
 {
@@ -149,9 +156,10 @@ get_image_length (guint format, guint width, guint height)
 
 
 Vtf *
-vtf_open_mem (gpointer data, GError **error)
+vtf_open_mem (gpointer data, gsize length, GError **error)
 {
 	gpointer p = data;
+	
 	Vtf *vtf = g_new0 (Vtf, 1);
 	vtf->images = g_ptr_array_new_with_free_func (g_free);
 	
@@ -162,24 +170,31 @@ vtf_open_mem (gpointer data, GError **error)
 	if (!(is_power_of_two (hdr.width) && is_power_of_two (hdr.height) &&
 			is_power_of_two (hdr.lowres_image_width) &&
 			is_power_of_two (hdr.lowres_image_height))) {
-		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+		g_set_error (error, VTF_ERROR, VTF_ERROR_DIMENTION,
 				"Dimensions of the image are not power of 2");
-		goto error;
+		goto err;
 	}
 	
 	if (!VTF_VERSION (vtf, 7, 2)) {
 		if (hdr.depth == 0) {
-			g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
-					"Could not read data: %s", g_strerror (errno));
-			goto error;
+			g_set_error (error, VTF_ERROR, VTF_ERROR_INVALID,
+					"Texture depth equals 0");
+			goto err;
 		}
 	} else {
 		hdr.depth = 1;
 	}
 	
 	if (hdr.depth > 1) {
-		g_set_error (error, 0, 0, "3D textures are not supported");
-		goto error;
+		g_set_error (error, VTF_ERROR, VTF_ERROR_UNSUPPORTED,
+				"3D textures are not supported");
+		goto err;
+	}
+	
+	if (hdr.mipmap_count == 0) {
+		g_set_error (error, VTF_ERROR, VTF_ERROR_INVALID,
+				"Number of mipmap images equals 0");
+		goto err;
 	}
 	
 	if (VTF_VERSION (vtf, 7, 3)) {
@@ -199,8 +214,9 @@ vtf_open_mem (gpointer data, GError **error)
 		}
 		
 		if (!image_found) {
-			g_set_error (error, 0, 0, "Could not find an image resoure");
-			goto error;
+			g_set_error (error, VTF_ERROR, VTF_ERROR_RESOURCE,
+					"Could not find an image resoure");
+			goto err;
 		}
 	} else {
 		int offset = get_image_length (hdr.lowres_image_format,
@@ -216,26 +232,26 @@ vtf_open_mem (gpointer data, GError **error)
 	
 	/* skip all mipmaps */
 	gint w, h, m, f;
-	guint length;
+	guint l;
 	
 	for (m = hdr.mipmap_count; m > 0; m--) {
 		w = calc_mipmap_size (vtf->width, m);
 		h = calc_mipmap_size (vtf->height, m);
-		length = get_image_length (vtf->format, w, h);
-		p += length * hdr.frames;
+		l = get_image_length (vtf->format, w, h);
+		p += l * hdr.frames;
 	}
 	
 	/* read our image */
-	length = get_image_length (vtf->format, vtf->width, vtf->height);
+	l = get_image_length (vtf->format, vtf->width, vtf->height);
 	for (f = 0; f < hdr.frames; f++) {
-		void *d = g_malloc (length);
-		memcpy (d, p, length);
+		void *d = g_malloc (l);
+		memcpy (d, p, l);
 		g_ptr_array_add (vtf->images, d);
 	}
 	
 	return vtf;
 	
-error:
+err:
 	g_free (vtf);
 	return NULL;
 }
@@ -249,7 +265,7 @@ Vtf *vtf_open_fd (FILE *fd, GError **error)
 	
 	gpointer data = g_malloc (len);
 	fread (data, len, 1, fd);
-	Vtf *vtf = vtf_open_mem (data, error);
+	Vtf *vtf = vtf_open_mem (data, len, error);
 	g_free (data);
 	
 	return vtf;
