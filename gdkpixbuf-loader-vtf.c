@@ -83,6 +83,8 @@ gdk_pixbuf__vtf_image_stop_load (gpointer context_ptr, GError **error)
 	}
 	
 	lc->prepared (pixbuf, GDK_PIXBUF_ANIMATION (anim), lc->udata);
+	g_object_unref (pixbuf);
+	g_object_unref (anim);
 	
 	vtf_close (vtf);
 	g_byte_array_free (lc->buffer, TRUE);
