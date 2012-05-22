@@ -1,3 +1,27 @@
+/* 
+ * gdkpixbuf-loader-vtf.c
+ * 
+ * Copyright (C) 2012 VTF loader developers
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public License as
+ * published by the Free Software Foundation; either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Library General Public
+ * License along with the Gnome Library; see the file COPYING.LIB.  If not,
+ * write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
+ * 
+ */
+
+
+
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include "vtf.h"
 
@@ -12,15 +36,25 @@ typedef struct _LoadContext {
 static GdkPixbuf *
 gdk_pixbuf__vtf_image_load (FILE *fd, GError **error)
 {
+	GdkPixbuf *pixbuf = NULL;
 	Vtf *vtf = vtf_open_fd (fd, error);
 	if (!vtf)
 		return NULL;
 	
 	guchar *data = vtf_get_image_rgba (vtf, 0);
+	if (!data) {
+		g_set_error (error, VTF_ERROR, VTF_ERROR_FORMAT,
+				"Format %s is not supported",
+				vtf_get_format_name (vtf_get_format (vtf)));
+		goto finish;
+	}
+	
 	gint width = vtf_get_width (vtf);
 	gint height = vtf_get_height (vtf);
-	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data (data, GDK_COLORSPACE_RGB,
+	pixbuf = gdk_pixbuf_new_from_data (data, GDK_COLORSPACE_RGB,
 			TRUE, 8, width, height, width * 4, NULL, NULL);
+	
+finish:
 	vtf_close (vtf);
 	return pixbuf;
 }
@@ -57,7 +91,8 @@ gdk_pixbuf__vtf_image_stop_load (gpointer context_ptr, GError **error)
 	
 	guchar *data = vtf_get_image_rgba (vtf, 0);
 	if (!data) {
-		g_set_error (error, 0, 0, "Format %s is not supported",
+		g_set_error (error, VTF_ERROR, VTF_ERROR_FORMAT,
+				"Format %s is not supported",
 				vtf_get_format_name (vtf_get_format (vtf)));
 		goto err;
 	}

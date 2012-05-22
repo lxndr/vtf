@@ -15,6 +15,5 @@ check: dxt.h dxt.c vtf.h vtf.c check.c
 
 clean:
 	rm file-vtf
-
-install:
-	
+	rm libpixbufloader-vtf.so
+	rm check
