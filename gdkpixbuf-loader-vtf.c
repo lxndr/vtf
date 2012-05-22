@@ -66,11 +66,25 @@ gdk_pixbuf__vtf_image_stop_load (gpointer context_ptr, GError **error)
 	gint height = vtf_get_height (vtf);
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data (data, GDK_COLORSPACE_RGB,
 			TRUE, 8, width, height, width * 4, free_buffer, NULL);
+	
+	GdkPixbufSimpleAnim *anim = NULL;
+	gint i, frames = vtf_get_frame_count (vtf);
+	if (frames > 0) {
+		GdkPixbuf *frame;
+		anim = gdk_pixbuf_simple_anim_new (width, height, 10.0f);
+		gdk_pixbuf_simple_anim_set_loop (anim, TRUE);
+		for (i = 0; i < frames; i++) {
+			data = vtf_get_image_rgba (vtf, i);
+			frame = gdk_pixbuf_new_from_data (data, GDK_COLORSPACE_RGB,
+					TRUE, 8, width, height, width * 4, free_buffer, NULL);
+			gdk_pixbuf_simple_anim_add_frame (anim, frame);
+			g_object_unref (frame);
+		}
+	}
+	
+	lc->prepared (pixbuf, GDK_PIXBUF_ANIMATION (anim), lc->udata);
+	
 	vtf_close (vtf);
-	
-	lc->prepared (pixbuf, NULL, lc->udata);
-	g_object_unref (pixbuf);
-	
 	g_byte_array_free (lc->buffer, TRUE);
 	g_slice_free (LoadContext, lc);
 	return TRUE;

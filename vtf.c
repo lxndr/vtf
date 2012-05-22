@@ -314,6 +314,7 @@ vtf_open_mem (gpointer data, gsize length, GError **error)
 		void *d = g_malloc (l);
 		memcpy (d, p, l);
 		g_ptr_array_add (vtf->images, d);
+		p += l;
 	}
 	
 	return vtf;
