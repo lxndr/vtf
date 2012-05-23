@@ -55,7 +55,6 @@ decode_color_block (void *rgb, int width, int x, int y, void *dxt)
 }
 
 
-
 void
 dxt1_to_rgba (void *rgb, int width, int height, void *dxt)
 {
@@ -81,15 +80,15 @@ dxt5_to_rgba (void *rgb, int width, int height, void *dxt)
 			decode_color_block (rgb, width, x, y, dxt + 8);
 			
 			uint16_t a[8];
-			a[0] = * (uint8_t *) dxt + 0;
-			a[1] = * (uint8_t *) dxt + 1;
+			a[0] = * (uint8_t *) (dxt + 0);
+			a[1] = * (uint8_t *) (dxt + 1);
 			
 			if (a[0] > a[1]) {
 				for (i = 1; i < 7; i++)
 					a[i + 1] = (a[0] * (7 - i) + a[1] * i) / 7;
 			} else {
 				for (i = 1; i < 5; i++)
-					a[i + 1] = (a[0] * (7 - i) + a[1] * i) / 5;
+					a[i + 1] = (a[0] * (5 - i) + a[1] * i) / 5;
 				a[6] = 0;
 				a[7] = 255;
 			}
