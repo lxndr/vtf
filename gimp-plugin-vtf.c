@@ -7,14 +7,14 @@
 static gint32 file_vtf_load_image (const gchar *fname, GError **error);
 static gint32 file_vtf_load_thumbnail_image (const gchar *fname,
 		gint *width, gint *height, GError **error);
-/* static GimpPDBStatusType file_vtf_save_image (const gchar *fname,
-		gint32 image, gint32 run_mode, GError **error); */
+static GimpPDBStatusType file_vtf_save_image (const gchar *fname,
+		gint32 image, gint32 run_mode, GError **error);
 
 
 
 #define LOAD_PROC			"file-vtf-load"
 #define LOAD_THUMB_PROC		"file-vtf-load-thumb"
-/* #define SAVE_PROC			"file-vtf-save" */
+#define SAVE_PROC			"file-vtf-save"
 
 
 
@@ -40,7 +40,6 @@ query ()
 		{GIMP_PDB_INT32,	"image-height",	"Height of full-sized image"}
 	};
 	
-/*
 	static const GimpParamDef save_args[] = {
 		{GIMP_PDB_INT32,	"run-mode",		"The run mode { RUN-INTERACTIVE (0), RUN-NONINTERACTIVE (1) }"},
 		{GIMP_PDB_IMAGE,	"image",		"Input image"},
@@ -48,7 +47,6 @@ query ()
 		{GIMP_PDB_STRING,	"filename",		"The name of the file to save the image in"},
 		{GIMP_PDB_STRING,	"raw-filename",	"The name entered"}
 	};
-*/
 	
 	gimp_install_procedure (LOAD_PROC,
 			"Loads files of Valve Texture File format",
@@ -84,13 +82,12 @@ query ()
 			thumb_return_vals);
 	gimp_register_thumbnail_loader (LOAD_PROC, LOAD_THUMB_PROC);
 	
-/*
 	gimp_install_procedure (SAVE_PROC,
 			"Saves files in Valve Texture File format",
 			"Saves files in Valve Texture File format",
 			"Alexander AB <lxndr87i@gmail.com>",
 			"Alexander AB <lxndr87i@gmail.com>",
-			"1012",
+			"2012",
 			"Valve Texture",
 			"*",
 			GIMP_PLUGIN,
@@ -100,7 +97,6 @@ query ()
 			NULL);
 	gimp_register_file_handler_mime (SAVE_PROC, "image/x-vtf");
 	gimp_register_save_handler (SAVE_PROC, "vtf", "");
-*/
 }
 
 
@@ -109,11 +105,11 @@ static void
 run (const gchar *name, gint nparams, const GimpParam *param,
 		gint *nreturn_vals, GimpParam **return_vals)
 {
-	static GimpParam   values[4];
-	GimpRunMode        run_mode;
-	GimpPDBStatusType  status = GIMP_PDB_SUCCESS;
-/*	GimpExportReturn   export = GIMP_EXPORT_CANCEL;*/
-	GError            *error  = NULL;
+	static GimpParam		values[4];
+	GimpRunMode			run_mode;
+	GimpPDBStatusType	status = GIMP_PDB_SUCCESS;
+	GimpExportReturn	export = GIMP_EXPORT_CANCEL;
+	GError				*error  = NULL;
 	
 	run_mode = param[0].data.d_int32;
 	
@@ -148,6 +144,7 @@ run (const gchar *name, gint nparams, const GimpParam *param,
 				status = GIMP_PDB_EXECUTION_ERROR;
 			}
 		}
+	
 	} else if (strcmp (name, LOAD_THUMB_PROC) == 0) {
 		if (nparams < 2) {
 			status = GIMP_PDB_CALLING_ERROR;
@@ -173,7 +170,8 @@ run (const gchar *name, gint nparams, const GimpParam *param,
 				status = GIMP_PDB_EXECUTION_ERROR;
 			}
 		}
-/*	} else if (strcmp (name, SAVE_PROC) == 0) {
+	
+	} else if (strcmp (name, SAVE_PROC) == 0) {
 		gchar *file_name;
 		gint32 image_ID;
 		
@@ -201,15 +199,16 @@ run (const gchar *name, gint nparams, const GimpParam *param,
 		}
 		
 		if (export == GIMP_EXPORT_EXPORT)
-			gimp_image_delete (image_ID);*/
+			gimp_image_delete (image_ID);
+	
 	} else {
 		status = GIMP_PDB_CALLING_ERROR;
 	}
 	
 	if (status != GIMP_PDB_SUCCESS && error) {
-		*nreturn_vals = 2;
-		values[1].type          = GIMP_PDB_STRING;
-		values[1].data.d_string = error->message;
+		*nreturn_vals			= 2;
+		values[1].type			= GIMP_PDB_STRING;
+		values[1].data.d_string	= error->message;
 	}
 	
 	values[0].data.d_status = status;
@@ -229,51 +228,59 @@ MAIN ()
 
 
 
-static void
-vtf_load_layer (Vtf *vtf, gint32 image, gint32 frame)
+static gboolean
+file_vtf_load_layer (Vtf *vtf, gint32 image, gint32 frame)
 {
-	GimpPixelRgn pixel_rgn;
+	void *rgba = vtf_get_image_rgba (vtf, frame);
+	if (!rgba)
+		return FALSE;
 	
 	gchar *name = g_strdup_printf ("Frame %d", frame);
 	gint32 layer = gimp_layer_new (image, name, vtf_get_width (vtf),
 			vtf_get_height (vtf), GIMP_RGBA_IMAGE, 100, GIMP_NORMAL_MODE);
 	gimp_image_insert_layer (image, layer, -1, frame);
+	g_free (name);
 	
+	GimpPixelRgn pixel_rgn;
 	GimpDrawable *drawable = gimp_drawable_get (layer);
 	gimp_pixel_rgn_init (&pixel_rgn, drawable, 0, 0,
 			drawable->width, drawable->height, TRUE, FALSE);
-	void *rgba = vtf_get_image_rgba (vtf, frame);
 	gimp_pixel_rgn_set_rect (&pixel_rgn, rgba, 0, 0,
-			drawable->width, drawable->height);
+				drawable->width, drawable->height);
 	gimp_drawable_detach (drawable);
 	
 	g_free (rgba);
-	g_free (name);
+	return TRUE;
 }
 
 
 gint32
 file_vtf_load_image (const gchar *fname, GError **error)
 {
-	Vtf *vtf;
-	
 	gimp_progress_init_printf ("Opening '%s'", gimp_filename_to_utf8 (fname));
 	
-	vtf = vtf_open (fname, error);
+	Vtf *vtf = vtf_open (fname, error);
 	if (!vtf)
 		return -1;
 	
-	gint32 image = gimp_image_new (vtf_get_width (vtf), vtf_get_height (vtf), GIMP_RGB);
+	gint32 image = gimp_image_new (vtf_get_width (vtf), vtf_get_height (vtf),
+			GIMP_RGB);
 	gimp_image_set_filename (image, fname);
 	
 	gint i, frame_count = vtf_get_frame_count (vtf);
-	for (i = 0; i < frame_count; i++)
-		vtf_load_layer (vtf, image, i);
-	
-	gimp_progress_update (1.0);
+	for (i = 0; i < frame_count; i++) {
+		if (!file_vtf_load_layer (vtf, image, i)) {
+			g_set_error (error, VTF_ERROR, VTF_ERROR_FORMAT,
+					"Unsupported format %s", vtf_get_format_name (vtf_get_format (vtf)));
+			/* clean up */
+			gimp_image_delete (image);
+			image = -1;
+			break;
+		}
+	}
 	
 	vtf_close (vtf);
-	
+	gimp_progress_update (1.0);
 	return image;
 }
 
@@ -289,20 +296,58 @@ file_vtf_load_thumbnail_image (const gchar *fname, gint *width, gint *height,
 	if (!vtf)
 		return -1;
 	
-	gint32 image = gimp_image_new (vtf_get_width (vtf), vtf_get_height (vtf), GIMP_RGB);
-	vtf_load_layer (vtf, image, 0);
+	*width = vtf_get_width (vtf);
+	*height = vtf_get_height (vtf);
+	
+	gint32 image = gimp_image_new (*width, *height, GIMP_RGB);
+	if (!file_vtf_load_layer (vtf, image, 0)) {
+		g_set_error (error, VTF_ERROR, VTF_ERROR_FORMAT,
+				"Unsupported format %s", vtf_get_format_name (vtf_get_format (vtf)));
+		gimp_image_delete (image);
+		image = -1;
+	}
+	
 	vtf_close (vtf);
 	gimp_progress_update (1.0);
-	
-	return -1;
+	return image;
 }
 
 
-/*
+static gboolean
+file_vtf_save_dialog ()
+{
+	gimp_ui_init ("file-vtf", TRUE);
+	GtkWidget *dialog = gimp_export_dialog_new ("Valve Texture",
+			"file-vtf", "plug-in-vtf");
+	
+	GtkWidget *main_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 12);
+	gtk_container_set_border_width (GTK_CONTAINER (main_vbox), 12);
+	gtk_box_pack_start (GTK_BOX (gimp_export_dialog_get_content_area (dialog)),
+			main_vbox, TRUE, TRUE, 0);
+	gtk_widget_show (main_vbox);
+	
+	GtkWidget *btn = gtk_button_new_with_label ("hi! :)");
+	gtk_box_pack_start (GTK_BOX (main_vbox), btn, FALSE, FALSE, 0);
+	
+	gtk_widget_show_all (dialog);
+	gint resp = gimp_dialog_run (GIMP_DIALOG (dialog));
+	gtk_widget_destroy (dialog);
+	return (resp == GTK_RESPONSE_OK);
+}
+
+
 GimpPDBStatusType
 file_vtf_save_image (const gchar *fname, gint32 image, gint32 run_mode,
 		GError **error)
 {
+	if (run_mode == GIMP_RUN_INTERACTIVE) {
+		if (!file_vtf_save_dialog ())
+			return GIMP_PDB_CANCEL;
+	}
+	
+	gimp_progress_init_printf ("Saving '%s'", gimp_filename_to_utf8 (fname));
+	
+	gimp_progress_update (1.0);
+	
 	return GIMP_PDB_SUCCESS;
 }
-*/
