@@ -2,8 +2,12 @@
 #define __VTF_H__
 
 #include <stdio.h>
-#include <glib.h>
+#include <stdint.h>
+#include <iostream>
+#include <vector>
 
+
+namespace Vtf {
 
 /* Format */
 #define VTF_FORMAT_NONE					-1
@@ -36,32 +40,189 @@
 #define VTF_FORMAT_UVLX8888				26
 
 
-#define VTF_ERROR vtf_error_quark ()
 
-typedef enum {
-	VTF_ERROR_INVALID,
-	VTF_ERROR_UNSUPPORTED,
-	VTF_ERROR_DIMENTION,
-	VTF_ERROR_FORMAT,
-	VTF_ERROR_RESOURCE
-} VtfErrorEnum;
+class Resource
+{
+public:
+	enum Type {
+		TypeUnknown	= 0x00000000,
+		TypeLowres	= 0x00000001,
+		TypeHires	= 0x00000030,
+		TypeCRC		= 0x02435243
+	};
+	
+	inline Resource(Type type) : mType(type)
+		{}
+	virtual inline ~Resource()
+		{};
+	
+	inline Type getType() const
+		{return mType;}
+	
+private:
+	Type	mType;
+};
 
 
 
-typedef struct _Vtf Vtf;
+class ImageResource : public Resource
+{
+public:
+	ImageResource(Type type) : Resource(type)
+		{}
+	
+	inline int32_t getFormat()
+		{return mFormat;}
+	
+	inline uint16_t getWidth()
+		{return mWidth;}
+	
+	inline uint16_t getHeight()
+		{return mHeight;}
+	
+protected:
+	int32_t mFormat;
+	uint16_t mWidth;
+	uint16_t mHeight;
+};
 
-Vtf *vtf_open (const gchar *fname, GError **error);
-Vtf *vtf_open_fd (FILE *fd, GError **error);
-Vtf *vtf_open_mem (gpointer data, gsize length, GError **error);
-void vtf_close (Vtf *vtf);
-guint vtf_get_width (Vtf *vtf);
-guint vtf_get_height (Vtf *vtf);
-guint vtf_get_format (Vtf *vtf);
-const gchar *vtf_get_format_name (gint format);
-guint vtf_get_frame_count (Vtf *vtf);
-void *vtf_get_image (Vtf *vtf, int frame);
-void *vtf_get_image_rgba (Vtf *vtf, int frame);
 
-GQuark vtf_error_quark (void);
+class LowresImageResource : public ImageResource
+{
+public:
+	inline LowresImageResource() : ImageResource(TypeLowres), mImage(NULL)
+		{}
+	
+	inline ~LowresImageResource()
+		{ if (mImage) delete[] mImage; }
+	
+	void read(std::istream& stm, uint32_t offset, int32_t format,
+			uint16_t width, uint16_t height);
+	
+	void setup(int32_t format, uint16_t width, uint16_t height);
+	
+private:
+	uint8_t* mImage;
+};
+
+
+
+class HiresImageResource : public Resource
+{
+public:
+	HiresImageResource();
+	inline ~HiresImageResource()
+		{clear();}
+	
+	void read(std::istream& stm, uint32_t offset, int32_t format,
+			uint16_t width, uint16_t height, uint16_t depth,
+			uint8_t mipmaps, uint16_t frames);
+	
+	inline uint16_t getWidth()
+		{return mWidth;}
+	
+	inline uint16_t getHeight()
+		{return mHeight;}
+	
+	inline uint16_t getDepth()
+		{return mDepth;}
+	
+	inline uint32_t getFormat()
+		{return mFormat;}
+	
+	inline uint32_t getFrameCount()
+		{return mFrameCount;}
+	
+	inline uint8_t getMipmapCount()
+		{return mMipmapCount;}
+	
+	uint8_t* getImage(uint8_t mipmap, uint16_t frame, uint16_t face, uint16_t slice);
+	uint8_t* getImageRGBA(uint8_t mipmap, uint16_t frame, uint16_t face, uint16_t slice);
+	
+	void clear();
+	void setup(int32_t format, uint16_t width, uint16_t height, uint8_t mipmaps, uint16_t frames,
+			uint16_t faces, uint16_t slices);
+	void setImage(uint8_t mipmap, uint16_t frame, uint16_t face, uint16_t slice, uint8_t* data);
+	bool check();
+	
+private:
+	int32_t mFormat;
+	uint16_t mWidth;
+	uint16_t mHeight;
+	uint16_t mDepth;
+	
+	uint8_t mMipmapCount;
+	uint16_t mFrameCount;
+	
+	typedef std::vector<uint8_t*>	SliceList;
+	typedef std::vector<SliceList>	FaceList;
+	typedef std::vector<FaceList>	FrameList;
+	typedef std::vector<FrameList>	MipmapList;
+	MipmapList mImages;
+};
+
+
+class CRCResource : public Resource
+{
+public:
+	inline CRCResource() : Resource(TypeCRC), mCRC(0)
+		{}
+	
+	inline ~CRCResource()
+		{}
+	
+	inline uint32_t get()
+		{return mCRC;}
+	
+	inline void set(uint32_t crc)
+		{mCRC = crc;}
+	
+private:
+	uint32_t mCRC;
+};
+
+
+class File
+{
+public:
+	File();
+	~File();
+	
+	void load(const std::string& fname);
+	void load(const char* data, std::size_t length);
+	void load(FILE* f);
+	void load(std::istream& stm);
+	
+	void save(const std::string& fname, uint32_t version);
+	void save(std::ostream& stm, uint32_t version);
+	
+	void addResource(Resource* res);
+	void delResource(Resource::Type type);
+	Resource* findResource(Resource::Type type);
+	
+private:
+	typedef std::vector<Resource*> ResourceList;
+	ResourceList mResourceList;
+};
+
+
+
+class Exception : public std::exception
+{
+public:
+	Exception(const std::string& message) throw ();
+	~Exception() throw ();
+	
+	const char* what() const throw ();
+
+private:
+	std::string mMessage;
+};
+
+
+const char* formatToString (uint32_t format);
+
+
+}
 
 #endif
