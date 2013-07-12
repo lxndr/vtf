@@ -9,35 +9,37 @@
 
 namespace Vtf {
 
-/* Format */
-#define VTF_FORMAT_NONE					-1
-#define VTF_FORMAT_RGBA8888				0
-#define VTF_FORMAT_ABGR8888				1
-#define VTF_FORMAT_RGB888				2
-#define VTF_FORMAT_BGR888				3
-#define VTF_FORMAT_RGB565				4
-#define VTF_FORMAT_I8					5
-#define VTF_FORMAT_IA88					6
-#define VTF_FORMAT_P8					7
-#define VTF_FORMAT_A8					8
-#define VTF_FORMAT_RGB888_BLUESCREEN	9
-#define VTF_FORMAT_BGR888_BLUESCREEN	10
-#define VTF_FORMAT_ARGB8888				11
-#define VTF_FORMAT_BGRA8888				12
-#define VTF_FORMAT_DXT1					13
-#define VTF_FORMAT_DXT3					14
-#define VTF_FORMAT_DXT5					15
-#define VTF_FORMAT_BGRX8888				16
-#define VTF_FORMAT_BGR565				17
-#define VTF_FORMAT_BGRX5551				18
-#define VTF_FORMAT_BGRA4444				19
-#define VTF_FORMAT_DXT1_ONEBITALPHA		20
-#define VTF_FORMAT_BGRA5551				21
-#define VTF_FORMAT_UV88					22
-#define VTF_FORMAT_UVWQ8888				23
-#define VTF_FORMAT_RGBA16161616F		24
-#define VTF_FORMAT_RGBA16161616			25
-#define VTF_FORMAT_UVLX8888				26
+
+enum Format {
+	FormatNone				= 0xFFFFFFFF,
+	FormatRGBA8888			= 0,
+	FormatABGR8888			= 1,
+	FormatRGB888			= 2,
+	FormatBGR888			= 3,
+	FormatRGB565			= 4,
+	FormatI8				= 5,
+	FormatIA88				= 6,
+	FormatP8				= 7,
+	FormatA8				= 8,
+	FormatRGB888_BlueScreen	= 9,
+	FormatBGR888_BlueScreen	= 10,
+	FormatARGB8888			= 11,
+	FormatBGRA8888			= 12,
+	FormatDXT1				= 13,
+	FormatDXT3				= 14,
+	FormatDXT5				= 15,
+	FormatBGRX8888			= 16,
+	FormatBGR565			= 17,
+	FormatBGRX5551			= 18,
+	FormatBGRA4444			= 19,
+	FormatDXT1_1bitAlpha	= 20,
+	FormatBGRA5551			= 21,
+	FormatUV88				= 22,
+	FormatUVWQ8888			= 23,
+	FormatRGBA16161616F		= 24,
+	FormatRGBA16161616		= 25,
+	FormatUVLX8888			= 26,
+};
 
 
 
@@ -68,10 +70,11 @@ private:
 class ImageResource : public Resource
 {
 public:
-	ImageResource(Type type) : Resource(type)
+	ImageResource(Type type) : Resource(type), mFormat(FormatNone),
+			mWidth(0), mHeight(0)
 		{}
 	
-	inline int32_t getFormat()
+	inline Format getFormat()
 		{return mFormat;}
 	
 	inline uint16_t getWidth()
@@ -81,7 +84,7 @@ public:
 		{return mHeight;}
 	
 protected:
-	int32_t mFormat;
+	Format mFormat;
 	uint16_t mWidth;
 	uint16_t mHeight;
 };
@@ -96,10 +99,10 @@ public:
 	inline ~LowresImageResource()
 		{ if (mImage) delete[] mImage; }
 	
-	void read(std::istream& stm, uint32_t offset, int32_t format,
+	void read(std::istream& stm, uint32_t offset, Format format,
 			uint16_t width, uint16_t height);
 	
-	void setup(int32_t format, uint16_t width, uint16_t height);
+	void setup(Format format, uint16_t width, uint16_t height);
 	
 private:
 	uint8_t* mImage;
@@ -107,28 +110,19 @@ private:
 
 
 
-class HiresImageResource : public Resource
+class HiresImageResource : public ImageResource
 {
 public:
 	HiresImageResource();
 	inline ~HiresImageResource()
 		{clear();}
 	
-	void read(std::istream& stm, uint32_t offset, int32_t format,
+	void read(std::istream& stm, uint32_t offset, Format format,
 			uint16_t width, uint16_t height, uint16_t depth,
 			uint8_t mipmaps, uint16_t frames);
 	
-	inline uint16_t getWidth()
-		{return mWidth;}
-	
-	inline uint16_t getHeight()
-		{return mHeight;}
-	
 	inline uint16_t getDepth()
 		{return mDepth;}
-	
-	inline uint32_t getFormat()
-		{return mFormat;}
 	
 	inline uint32_t getFrameCount()
 		{return mFrameCount;}
@@ -140,15 +134,12 @@ public:
 	uint8_t* getImageRGBA(uint8_t mipmap, uint16_t frame, uint16_t face, uint16_t slice);
 	
 	void clear();
-	void setup(int32_t format, uint16_t width, uint16_t height, uint8_t mipmaps, uint16_t frames,
+	void setup(Format format, uint16_t width, uint16_t height, uint8_t mipmaps, uint16_t frames,
 			uint16_t faces, uint16_t slices);
 	void setImage(uint8_t mipmap, uint16_t frame, uint16_t face, uint16_t slice, uint8_t* data);
 	bool check();
 	
-private:
-	int32_t mFormat;
-	uint16_t mWidth;
-	uint16_t mHeight;
+protected:
 	uint16_t mDepth;
 	
 	uint8_t mMipmapCount;

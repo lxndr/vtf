@@ -411,10 +411,10 @@ file_vtf_save_dialog (SaveInfo *info)
 			GTK_FILL, GTK_FILL, 0, 0);
 	
 	info->ctl_format = gimp_int_combo_box_new (
-			Vtf::formatToString (VTF_FORMAT_RGBA8888),	VTF_FORMAT_RGBA8888,
-			Vtf::formatToString (VTF_FORMAT_DXT1),		VTF_FORMAT_DXT1,
-			Vtf::formatToString (VTF_FORMAT_DXT3),		VTF_FORMAT_DXT3,
-			Vtf::formatToString (VTF_FORMAT_DXT5),		VTF_FORMAT_DXT5,
+			Vtf::formatToString (Vtf::FormatRGBA8888),	Vtf::FormatRGBA8888,
+			Vtf::formatToString (Vtf::FormatDXT1),		Vtf::FormatDXT1,
+			Vtf::formatToString (Vtf::FormatDXT3),		Vtf::FormatDXT3,
+			Vtf::formatToString (Vtf::FormatDXT5),		Vtf::FormatDXT5,
 			NULL);
 	gimp_int_combo_box_set_active (GIMP_INT_COMBO_BOX (info->ctl_format), info->format);
 	gtk_table_attach (GTK_TABLE (table), info->ctl_format, 1, 2, 1, 2,
@@ -488,7 +488,7 @@ file_vtf_save_image (const gchar *fname, gint32 image, gint32 run_mode,
 {
 	SaveInfo info;
 	info.version = 4;
-	info.format = VTF_FORMAT_DXT5;
+	info.format = Vtf::FormatDXT5;
 	info.layer = 0;
 	info.mipmap = TRUE;
 	info.lowres = TRUE;

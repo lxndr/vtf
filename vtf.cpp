@@ -61,9 +61,9 @@ struct Header {
 	
 	/* version 7.0 */
 	float		bumpmapScale;		/* Bumpmap scale */
-	int32_t		format;				/* High resolution image format */
+	Format		format;				/* High resolution image format */
 	uint8_t		mipmapCount;		/* Number of mipmaps */
-	int32_t		lowresFormat;		/* Low resolution image format (always DXT1) */
+	Format		lowresFormat;		/* Low resolution image format (always DXT1) */
 	uint8_t		lowresWidth;		/* Low resolution image width */
 	uint8_t		lowresHeight;		/* Low resolution image height */
 	
@@ -105,32 +105,32 @@ calcMipmapSize (uint16_t size, uint8_t mipmap)
 
 
 static uint32_t
-getImageLength (int32_t format, uint16_t width, uint16_t height)
+getImageLength (Format format, uint16_t width, uint16_t height)
 {
 	uint32_t npixels = width * height;
 	
 	switch (format) {
-		case VTF_FORMAT_RGBA8888:
-		case VTF_FORMAT_ABGR8888:
-		case VTF_FORMAT_ARGB8888:
-		case VTF_FORMAT_BGRA8888:
-		case VTF_FORMAT_BGRX8888:
+		case FormatRGBA8888:
+		case FormatABGR8888:
+		case FormatARGB8888:
+		case FormatBGRA8888:
+		case FormatBGRX8888:
 			return npixels * 4;
-		case VTF_FORMAT_RGB888:
-		case VTF_FORMAT_BGR888:
-		case VTF_FORMAT_RGB888_BLUESCREEN:
-		case VTF_FORMAT_BGR888_BLUESCREEN:
+		case FormatRGB888:
+		case FormatBGR888:
+		case FormatRGB888_BlueScreen:
+		case FormatBGR888_BlueScreen:
 			return npixels * 3;
-		case VTF_FORMAT_RGB565:
-		case VTF_FORMAT_BGR565:
-		case VTF_FORMAT_BGRX5551:
-		case VTF_FORMAT_BGRA4444:
-		case VTF_FORMAT_BGRA5551:
+		case FormatRGB565:
+		case FormatBGR565:
+		case FormatBGRX5551:
+		case FormatBGRA4444:
+		case FormatBGRA5551:
 			return npixels * 2;
-		case VTF_FORMAT_DXT1:
+		case FormatDXT1:
 			return npixels < 16 ? 8 : npixels / 2;
-		case VTF_FORMAT_DXT3:
-		case VTF_FORMAT_DXT5:
+		case FormatDXT3:
+		case FormatDXT5:
 			return npixels < 16 ? 16 : npixels;
 		default:
 			return 0;
@@ -141,35 +141,35 @@ const char *
 formatToString (uint32_t format)
 {
 	switch (format) {
-		case VTF_FORMAT_NONE:				return "None";
-		case VTF_FORMAT_RGBA8888:			return "RGBA8888";
-		case VTF_FORMAT_ABGR8888:			return "ABGR8888";
-		case VTF_FORMAT_RGB888:				return "RGB888";	
-		case VTF_FORMAT_BGR888:				return "BGR888";	
-		case VTF_FORMAT_RGB565:				return "RGB565";	
-		case VTF_FORMAT_I8:					return "I8";	
-		case VTF_FORMAT_IA88:				return "IA88";
-		case VTF_FORMAT_P8:					return "P8";
-		case VTF_FORMAT_A8:					return "A8";
-		case VTF_FORMAT_RGB888_BLUESCREEN:	return "RGB888_BLUESCREEN";
-		case VTF_FORMAT_BGR888_BLUESCREEN:	return "BGR888_BLUESCREEN";
-		case VTF_FORMAT_ARGB8888:			return "ARGB8888";
-		case VTF_FORMAT_BGRA8888:			return "BGRA8888";
-		case VTF_FORMAT_DXT1:				return "DXT1";
-		case VTF_FORMAT_DXT3:				return "DXT3";
-		case VTF_FORMAT_DXT5:				return "DXT5";
-		case VTF_FORMAT_BGRX8888:			return "BGRX8888";
-		case VTF_FORMAT_BGR565:				return "BGR565";
-		case VTF_FORMAT_BGRX5551:			return "BGRX5551";
-		case VTF_FORMAT_BGRA4444:			return "BGRA4444";
-		case VTF_FORMAT_DXT1_ONEBITALPHA:	return "DXT1_ONEBITALPHA";
-		case VTF_FORMAT_BGRA5551:			return "BGRA5551";
-		case VTF_FORMAT_UV88:				return "UV88";
-		case VTF_FORMAT_UVWQ8888:			return "UVWQ8888";
-		case VTF_FORMAT_RGBA16161616F:		return "RGBA16161616F";
-		case VTF_FORMAT_RGBA16161616:		return "RGBA16161616";
-		case VTF_FORMAT_UVLX8888:			return "UVLX8888";
-		default:							return "Unknown";
+		case FormatNone:				return "None";
+		case FormatRGBA8888:			return "RGBA8888";
+		case FormatABGR8888:			return "ABGR8888";
+		case FormatRGB888:				return "RGB888";	
+		case FormatBGR888:				return "BGR888";	
+		case FormatRGB565:				return "RGB565";	
+		case FormatI8:					return "I8";	
+		case FormatIA88:				return "IA88";
+		case FormatP8:					return "P8";
+		case FormatA8:					return "A8";
+		case FormatRGB888_BlueScreen:	return "RGB888_BlueScreen";
+		case FormatBGR888_BlueScreen:	return "BGR888_BlueScreen";
+		case FormatARGB8888:			return "ARGB8888";
+		case FormatBGRA8888:			return "BGRA8888";
+		case FormatDXT1:				return "DXT1";
+		case FormatDXT3:				return "DXT3";
+		case FormatDXT5:				return "DXT5";
+		case FormatBGRX8888:			return "BGRX8888";
+		case FormatBGR565:				return "BGR565";
+		case FormatBGRX5551:			return "BGRX5551";
+		case FormatBGRA4444:			return "BGRA4444";
+		case FormatDXT1_1bitAlpha:		return "DXT1_1bitAlpha";
+		case FormatBGRA5551:			return "BGRA5551";
+		case FormatUV88:				return "UV88";
+		case FormatUVWQ8888:			return "UVWQ8888";
+		case FormatRGBA16161616F:		return "RGBA16161616F";
+		case FormatRGBA16161616:		return "RGBA16161616";
+		case FormatUVLX8888:			return "UVLX8888";
+		default:						return "Unknown";
 	}
 }
 
@@ -193,7 +193,7 @@ const char* Exception::what() const throw ()
 
 /* Vtf::LowresImageResource */
 void LowresImageResource::read(std::istream& stm, uint32_t offset,
-		int32_t format, uint16_t width, uint16_t height)
+		Format format, uint16_t width, uint16_t height)
 {
 	if (mImage)
 		delete[] mImage;
@@ -207,7 +207,7 @@ void LowresImageResource::read(std::istream& stm, uint32_t offset,
 }
 
 
-void LowresImageResource::setup(int32_t format, uint16_t width, uint16_t height)
+void LowresImageResource::setup(Format format, uint16_t width, uint16_t height)
 {
 	mFormat = format;
 	mWidth = width;
@@ -218,8 +218,7 @@ void LowresImageResource::setup(int32_t format, uint16_t width, uint16_t height)
 
 /* Vtf::HiresImage */
 HiresImageResource::HiresImageResource()
-	: Resource(TypeHires), mFormat(VTF_FORMAT_NONE), mWidth(0), mHeight(0),
-			mDepth(0), mMipmapCount(0), mFrameCount(0)
+	: ImageResource(TypeHires), mDepth(0), mMipmapCount(0), mFrameCount(0)
 {
 }
 
@@ -234,7 +233,7 @@ void HiresImageResource::clear()
 }
 
 
-void HiresImageResource::read(std::istream& stm, uint32_t offset, int32_t format,
+void HiresImageResource::read(std::istream& stm, uint32_t offset, Format format,
 			uint16_t width, uint16_t height, uint16_t depth,
 			uint8_t mipmaps, uint16_t frames)
 {
@@ -280,15 +279,15 @@ uint8_t* HiresImageResource::getImageRGBA(uint8_t mipmap, uint16_t frame,
 	uint16_t img_width = calcMipmapSize(mWidth, mipmap);
 	uint16_t img_height = calcMipmapSize(mHeight, mipmap);
 	uint8_t* img_data = getImage(mipmap, frame, face, slice);
-	uint32_t rgba_length = getImageLength(VTF_FORMAT_RGBA8888, img_width, img_height);
+	uint32_t rgba_length = getImageLength(FormatRGBA8888, img_width, img_height);
 	uint8_t *rgba_data = new uint8_t[rgba_length];
 	uint32_t c, i;
 	
 	switch (mFormat) {
-	case VTF_FORMAT_RGBA8888:
+	case FormatRGBA8888:
 		memcpy (rgba_data, img_data, rgba_length);
 		break;
-	case VTF_FORMAT_ABGR8888:
+	case FormatABGR8888:
 		c = img_width * img_height;
 		for (i = 0; i < c; i++) {
 			rgba_data[i * 4 + 0] = img_data[i * 4 + 3];
@@ -297,7 +296,7 @@ uint8_t* HiresImageResource::getImageRGBA(uint8_t mipmap, uint16_t frame,
 			rgba_data[i * 4 + 3] = img_data[i * 4 + 0];
 		}
 		break;
-	case VTF_FORMAT_RGB888:
+	case FormatRGB888:
 		c = img_width * img_height;
 		for (i = 0; i < c; i++) {
 			rgba_data[i * 4 + 0] = img_data[i * 3 + 0];
@@ -306,7 +305,7 @@ uint8_t* HiresImageResource::getImageRGBA(uint8_t mipmap, uint16_t frame,
 			rgba_data[i * 4 + 3] = 255;
 		}		
 		break;
-	case VTF_FORMAT_BGR888:
+	case FormatBGR888:
 		c = img_width * img_height;
 		for (i = 0; i < c; i++) {
 			rgba_data[i * 4 + 0] = img_data[i * 3 + 2];
@@ -315,7 +314,7 @@ uint8_t* HiresImageResource::getImageRGBA(uint8_t mipmap, uint16_t frame,
 			rgba_data[i * 4 + 3] = 255;
 		}
 		break;
-	case VTF_FORMAT_ARGB8888:
+	case FormatARGB8888:
 		c = img_width * img_height;
 		for (i = 0; i < c; i++) {
 			rgba_data[i * 4 + 0] = img_data[i * 4 + 3];
@@ -324,7 +323,7 @@ uint8_t* HiresImageResource::getImageRGBA(uint8_t mipmap, uint16_t frame,
 			rgba_data[i * 4 + 3] = img_data[i * 4 + 2];
 		}
 		break;
-	case VTF_FORMAT_BGRA8888:
+	case FormatBGRA8888:
 		c = img_width * img_height;
 		for (i = 0; i < c; i++) {
 			rgba_data[i * 4 + 0] = img_data[i * 4 + 2];
@@ -333,13 +332,13 @@ uint8_t* HiresImageResource::getImageRGBA(uint8_t mipmap, uint16_t frame,
 			rgba_data[i * 4 + 3] = img_data[i * 4 + 3];
 		}
 		break;
-	case VTF_FORMAT_DXT1:
+	case FormatDXT1:
 		squish::DecompressImage(rgba_data, img_width, img_height, img_data, squish::kDxt1);
 		break;
-	case VTF_FORMAT_DXT3:
+	case FormatDXT3:
 		squish::DecompressImage(rgba_data, img_width, img_height, img_data, squish::kDxt3);
 		break;
-	case VTF_FORMAT_DXT5:
+	case FormatDXT5:
 		squish::DecompressImage(rgba_data, img_width, img_height, img_data, squish::kDxt5);
 		break;
 	default:
@@ -351,7 +350,7 @@ uint8_t* HiresImageResource::getImageRGBA(uint8_t mipmap, uint16_t frame,
 }
 
 
-void HiresImageResource::setup(int32_t format, uint16_t width, uint16_t height,
+void HiresImageResource::setup(Format format, uint16_t width, uint16_t height,
 		uint8_t mipmaps, uint16_t frames, uint16_t faces, uint16_t slices)
 {
 	mFormat = format;
@@ -505,7 +504,7 @@ void File::load(std::istream& stm)
 	} else {
 		/* This version does not support resources, but we add them anyway.
 			First read lowres image, if needed. */
-		if (hdr.lowresFormat != VTF_FORMAT_NONE) {
+		if (hdr.lowresFormat != FormatNone) {
 			LowresImageResource* res = new LowresImageResource;
 			res->read(stm, hdr.headerSize, hdr.lowresFormat,
 					hdr.lowresWidth, hdr.lowresHeight);
