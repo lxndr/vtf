@@ -42,6 +42,8 @@ namespace Vtf {
 #define VTF_VERSION(hdr, major, minor)	\
 	(hdr.version[0] >= major && hdr.version[1] >= minor)
 
+#define IS_POWER_OF_TWO(t) (t > 0 && !(t & (t - 1)))
+
 
 struct Header {
 	uint32_t	magic;				/* file signature ("VTF\0") */
@@ -81,18 +83,6 @@ struct HeaderResource {
 	uint32_t offset;
 } __attribute__((packed));
 
-
-
-static bool
-isPowerOfTwo (uint16_t n)
-{
-	static const uint32_t numbers[] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512,
-			1024, 2048, 4096, 8192, 16384, 32768};
-	for (int i = 0; i <= 16; i++)
-		if (numbers[i] == n)
-			return true;
-	return false;
-}
 
 
 inline uint16_t
@@ -451,13 +441,13 @@ void File::load(std::istream& stm)
 	if (stm.fail())
 		throw Exception("Header is too small");
 	
-	if (!(isPowerOfTwo(hdr.width) && isPowerOfTwo(hdr.height)))
+	if (!(IS_POWER_OF_TWO(hdr.width) && IS_POWER_OF_TWO(hdr.height)))
 		throw Exception("Dimensions of the image are not power of 2");
 	
 	if (hdr.mipmapCount == 0)
 		throw Exception("Number of mipmap images equals 0");
 	
-	if (!(isPowerOfTwo (hdr.lowresWidth) && isPowerOfTwo (hdr.lowresHeight)))
+	if (!(IS_POWER_OF_TWO(hdr.lowresWidth) && IS_POWER_OF_TWO(hdr.lowresHeight)))
 		throw Exception("Lowres image dimensions are not power of 2");
 	
 	if (hdr.version[0] >= 7 && hdr.version[1] >= 2) {
