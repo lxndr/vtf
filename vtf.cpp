@@ -1,6 +1,5 @@
 #include <squish.h>
 #include <math.h>
-#include <iostream>
 #include <fstream>
 #include <boost/iostreams/device/array.hpp>
 #include <boost/iostreams/device/file.hpp>
