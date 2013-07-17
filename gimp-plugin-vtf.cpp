@@ -1,4 +1,5 @@
 #include <string.h>
+#include <memory>
 #include <libgimp/gimp.h>
 #include <libgimp/gimpui.h>
 #include "vtf.h"
@@ -245,24 +246,22 @@ static gboolean
 file_vtf_load_layer (Vtf::HiresImageResource *vres, gint32 image, gint16 frame)
 {
 	uint8_t *rgba = vres->getImageRGBA(0, frame, 0, 0);
-	if (!rgba)
-		return FALSE;
+	g_return_val_if_fail (rgba != NULL, FALSE);
 	
 	gchar *name = g_strdup_printf ("Frame %d", frame);
-	gint32 layer = gimp_layer_new (image, name, vres->getWidth (),
-			vres->getHeight(), GIMP_RGBA_IMAGE, 100, GIMP_NORMAL_MODE);
+	gint32 layer = gimp_layer_new (image, name, vres->width (), vres->height(),
+			GIMP_RGBA_IMAGE, 100, GIMP_NORMAL_MODE);
 	gimp_image_insert_layer (image, layer, -1, frame);
 	g_free (name);
 	
 	GimpPixelRgn pixel_rgn;
 	GimpDrawable *drawable = gimp_drawable_get (layer);
-	gimp_pixel_rgn_init (&pixel_rgn, drawable, 0, 0,
-			drawable->width, drawable->height, TRUE, FALSE);
-	gimp_pixel_rgn_set_rect (&pixel_rgn, rgba, 0, 0,
-				drawable->width, drawable->height);
+	gimp_pixel_rgn_init (&pixel_rgn, drawable, 0, 0, drawable->width,
+			drawable->height, TRUE, FALSE);
+	gimp_pixel_rgn_set_rect (&pixel_rgn, rgba, 0, 0, drawable->width,
+			drawable->height);
 	gimp_drawable_detach (drawable);
 	
-	g_free (rgba);
 	return TRUE;
 }
 
@@ -270,42 +269,38 @@ file_vtf_load_layer (Vtf::HiresImageResource *vres, gint32 image, gint16 frame)
 gint32
 file_vtf_load_image (const gchar *fname, GError **error)
 {
-	gint32 image = -1;
 	gimp_progress_init_printf ("Opening '%s'", gimp_filename_to_utf8 (fname));
 	
-	Vtf::File *vtf = new Vtf::File;
+	gint32 image = -1;
+	std::auto_ptr<Vtf::File> vtf (new Vtf::File);
 	
 	try {
 		vtf->load(fname);
 		
 		Vtf::HiresImageResource* vres = (Vtf::HiresImageResource*)
-				vtf->findResource(Vtf::Resource::TypeHires);
-		if (vres) {
-			image = gimp_image_new (vres->getWidth(), vres->getHeight(), GIMP_RGB);
-			gimp_image_set_filename (image, fname);
-			
-			guint16 i, frame_count = vres->getFrameCount();
-			for (i = 0; i < frame_count; i++) {
-				if (!file_vtf_load_layer (vres, image, i)) {
-					g_set_error (error, 0, 0, "Unsupported format %s",
-							Vtf::formatToString (vres->getFormat()));
-					gimp_image_delete (image);
-					image = -1;
-					break;
-				}
+				vtf->findResource (Vtf::Resource::TypeHires);
+		if (!vres)
+			throw Vtf::Exception ("Cound not find high-resolution image");
+		
+		image = gimp_image_new (vres->width (), vres->height  (), GIMP_RGB);
+		gimp_image_set_filename (image, fname);
+		
+		guint16 i, frame_count = vres->frameCount ();
+		for (i = 0; i < frame_count; i++) {
+			if (!file_vtf_load_layer (vres, image, i)) {
+				g_set_error (error, 0, 0, "Unsupported format %s",
+						Vtf::formatToString (vres->format()));
+				gimp_image_delete (image);
+				image = -1;
+				break;
 			}
-			
-			gimp_progress_update (1.0);
-		} else {
-			g_set_error (error, 0, 0, "Could not find high-resolution image");
 		}
-	} catch (Vtf::Exception& e) {
-		g_set_error (error, 0, 0, e.what());
+		
+		gimp_progress_update (1.0);
 	} catch (std::exception& e) {
-		g_set_error (error, 0, 0, e.what());
+		g_set_error (error, 0, 0, e.what ());
 	}
 	
-	delete vtf;
 	return image;
 }
 
@@ -324,14 +319,16 @@ file_vtf_load_thumbnail_image (const gchar *fname, gint *width, gint *height,
 		
 		Vtf::HiresImageResource* vres = (Vtf::HiresImageResource*)
 				vtf->findResource(Vtf::Resource::TypeHires);
+		if (!vres)
+			throw Vtf::Exception ("Cound not find high-resolution image");
 		
-		*width = static_cast<gint>(vres->getWidth ());
-		*height = static_cast<gint>(vres->getHeight ());
+		*width = static_cast<gint> (vres->width ());
+		*height = static_cast<gint> (vres->height ());
 		
 		image = gimp_image_new (*width, *height, GIMP_RGB);
 		if (!file_vtf_load_layer (vres, image, 0)) {
 			g_set_error (error, 0, 0, "Unsupported format %s",
-					Vtf::formatToString(vres->getFormat()));
+					Vtf::formatToString(vres->format()));
 			gimp_image_delete (image);
 			image = -1;
 		}
@@ -494,12 +491,23 @@ file_vtf_save_image (const gchar *fname, gint32 image, gint32 run_mode,
 	info.lowres = TRUE;
 	info.crc = TRUE;
 	
-	if (run_mode == GIMP_RUN_INTERACTIVE) {
+	if (run_mode == GIMP_RUN_INTERACTIVE)
 		if (!file_vtf_save_dialog (&info))
 			return GIMP_PDB_CANCEL;
-	}
 	
 	gimp_progress_init_printf ("Saving '%s'", gimp_filename_to_utf8 (fname));
+	
+	std::auto_ptr<Vtf::File> vtf (new Vtf::File);
+	
+	try {
+		Vtf::HiresImageResource* vres = new Vtf::HiresImageResource;
+//		vres->setup (info.format, info.width, info.height, info);
+		vres->check ();
+		
+		vtf->addResource (vres);
+		vtf->save (fname, info.version);
+	} catch (std::exception& e) {
+	}
 	
 	gimp_progress_update (1.0);
 	

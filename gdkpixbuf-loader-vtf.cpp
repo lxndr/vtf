@@ -22,6 +22,7 @@
 
 
 
+#include <memory>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include "vtf.h"
 
@@ -37,25 +38,25 @@ static GdkPixbuf *
 gdk_pixbuf__vtf_image_load (FILE *fd, GError **error)
 {
 	GdkPixbuf *pixbuf = NULL;
-	Vtf *vtf = vtf_open_fd (fd, error);
-	if (!vtf)
-		return NULL;
+	std::auto_ptr<Vtf::File> vtf(new Vtf::File);
 	
-	guchar *data = vtf_get_image_rgba (vtf, 0);
-	if (!data) {
-		g_set_error (error, VTF_ERROR, VTF_ERROR_FORMAT,
-				"Format %s is not supported",
-				vtf_get_format_name (vtf_get_format (vtf)));
-		goto finish;
+	try {
+		vtf->load(fd);
+		
+		Vtf::HiresImageResource* vres = static_cast<Vtf::HiresImageResource*> (
+				vtf->findResource(Vtf::Resource::TypeHires));
+		if (!vres)
+			throw Vtf::Exception ("Could not find high-resolution image resource");
+		
+		uint8_t* data = vres->getImageRGBA (0, 0, 0, 0);
+		gint width = vres->width ();
+		gint height = vres->height ();
+		pixbuf = gdk_pixbuf_new_from_data (data, GDK_COLORSPACE_RGB,
+				TRUE, 8, width, height, width * 4, NULL, NULL);
+	} catch (std::exception& e) {
+		g_set_error (error, 0, 0, e.what());
 	}
 	
-	gint width = vtf_get_width (vtf);
-	gint height = vtf_get_height (vtf);
-	pixbuf = gdk_pixbuf_new_from_data (data, GDK_COLORSPACE_RGB,
-			TRUE, 8, width, height, width * 4, NULL, NULL);
-	
-finish:
-	vtf_close (vtf);
 	return pixbuf;
 }
 
@@ -83,7 +84,7 @@ free_buffer (guchar *pixels, gpointer data)
 static gboolean
 gdk_pixbuf__vtf_image_stop_load (gpointer context_ptr, GError **error)
 {
-	LoadContext *lc = context_ptr;
+	LoadContext* lc = static_cast<LoadContext*> (context_ptr);
 	
 	Vtf *vtf = vtf_open_mem (lc->buffer->data, lc->buffer->len, error);
 	if (!vtf)

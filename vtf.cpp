@@ -127,7 +127,7 @@ getImageLength (Format format, uint16_t width, uint16_t height)
 }
 
 const char *
-formatToString (uint32_t format)
+formatToString (Format format)
 {
 	switch (format) {
 		case FormatNone:				return "None";
@@ -184,30 +184,39 @@ const char* Exception::what() const throw ()
 void LowresImageResource::read(std::istream& stm, uint32_t offset,
 		Format format, uint16_t width, uint16_t height)
 {
-	if (mImage)
-		delete[] mImage;
+	if (m_Image)
+		delete[] m_Image;
 	
-	uint32_t length = getImageLength(format, width, height);
-	mImage = new uint8_t[length];
-	stm.seekg(offset);
-	stm.read((std::istream::char_type*)mImage, length);
-	if (stm.fail())
-		throw Exception("Could not read Low-resolution image");
+	uint32_t length = getImageLength (format, width, height);
+	m_Image = new uint8_t[length];
+	stm.seekg (offset);
+	stm.read ((std::istream::char_type*) m_Image, length);
+	if (stm.fail ())
+		throw Exception ("Could not read Low-resolution image");
 }
 
 
 void LowresImageResource::setup(Format format, uint16_t width, uint16_t height)
 {
-	mFormat = format;
-	mWidth = width;
-	mHeight = height;
+	m_Format = format;
+	m_Width = width;
+	m_Height = height;
+}
+
+
+void LowresImageResource::write (std::ostream& stm) const
+{
+	uint32_t length = getImageLength (m_Format, m_Width, m_Height);
+	stm.write ((std::istream::char_type*) m_Image, length);
+	if (stm.fail ())
+		throw Exception ("Could not write Low-resolution image");
 }
 
 
 
 /* Vtf::HiresImage */
 HiresImageResource::HiresImageResource()
-	: ImageResource(TypeHires), mDepth(0), mMipmapCount(0), mFrameCount(0)
+	: ImageResource(TypeHires), m_Depth(0), m_MipmapCount(0), m_FrameCount(0)
 {
 }
 
@@ -252,10 +261,10 @@ void HiresImageResource::read(std::istream& stm, uint32_t offset, Format format,
 uint8_t* HiresImageResource::getImage(uint8_t mipmap, uint16_t frame,
 		uint16_t face, uint16_t slice)
 {
-	assert(mipmap < mMipmapCount);
-	assert(frame < mFrameCount);
+	assert(mipmap < m_MipmapCount);
+	assert(frame < m_FrameCount);
 	assert(face < 1);
-	assert(slice < mDepth);
+	assert(slice < m_Depth);
 	
 	return mImages[mipmap][frame][face][slice];
 }
@@ -265,14 +274,14 @@ uint8_t* HiresImageResource::getImageRGBA(uint8_t mipmap, uint16_t frame,
 		uint16_t face, uint16_t slice)
 {
 	/* let's clear it up. SIZE is dimension / resolution. LENGTH is data length */
-	uint16_t img_width = calcMipmapSize(mWidth, mipmap);
-	uint16_t img_height = calcMipmapSize(mHeight, mipmap);
+	uint16_t img_width = calcMipmapSize (m_Width, mipmap);
+	uint16_t img_height = calcMipmapSize (m_Height, mipmap);
 	uint8_t* img_data = getImage(mipmap, frame, face, slice);
 	uint32_t rgba_length = getImageLength(FormatRGBA8888, img_width, img_height);
 	uint8_t *rgba_data = new uint8_t[rgba_length];
 	uint32_t c, i;
 	
-	switch (mFormat) {
+	switch (m_Format) {
 	case FormatRGBA8888:
 		memcpy (rgba_data, img_data, rgba_length);
 		break;
@@ -342,12 +351,12 @@ uint8_t* HiresImageResource::getImageRGBA(uint8_t mipmap, uint16_t frame,
 void HiresImageResource::setup(Format format, uint16_t width, uint16_t height,
 		uint8_t mipmaps, uint16_t frames, uint16_t faces, uint16_t slices)
 {
-	mFormat = format;
-	mWidth = width;
-	mHeight = height;
-	mDepth = slices;
-	mMipmapCount = mipmaps;
-	mFrameCount = frames;
+	m_Format = format;
+	m_Width = width;
+	m_Height = height;
+	m_Depth = slices;
+	m_MipmapCount = mipmaps;
+	m_FrameCount = frames;
 	
 	mImages.resize(mipmaps);
 	for (MipmapList::iterator mm = mImages.begin(); mm != mImages.end(); ++mm) {
@@ -380,6 +389,28 @@ void HiresImageResource::setImage(uint8_t mipmap, uint16_t frame, uint16_t face,
 		uint16_t slice, uint8_t* data)
 {
 	mImages[mipmap][frame][face][slice] = data;
+}
+
+
+void HiresImageResource::write (std::ostream& stm)
+{
+	for (int mm = 0; mm < m_MipmapCount; mm++) {
+		uint16_t w = calcMipmapSize(m_Width, m_MipmapCount - mm - 1);
+		uint16_t h = calcMipmapSize(m_Height, m_MipmapCount - mm - 1);
+		for (int fr = 0; fr < m_FrameCount; fr++) {
+			for (int fc = 0; fc < 1; fc++) {
+				for (int sl = 0; sl < m_Depth; sl++) {
+					uint32_t len = getImageLength(m_Format, w, h);
+					uint8_t* data = getImage (mm, fr, fc, sl);
+					stm.write((std::ostream::char_type*) data, len);
+					if (stm.fail()) {
+						delete data;
+						throw Exception("Could not write high-resolution image");
+					}
+				}
+			}
+		}
+	}
 }
 
 
@@ -518,7 +549,8 @@ void File::save(const std::string& fname, uint32_t version)
 
 void File::save(std::ostream& stm, uint32_t version)
 {
-	Header hdr = {0};
+	Header hdr;
+	memset (&hdr, 0, sizeof (hdr));
 	
 	hdr.magic = 0x00465456;
 	hdr.version[0] = 7;
@@ -530,23 +562,26 @@ void File::save(std::ostream& stm, uint32_t version)
 	
 	LowresImageResource* lowres = (LowresImageResource*) findResource(Resource::TypeLowres);
 	
-	hdr.width = hires->getWidth();
-	hdr.height = hires->getHeight();
-	hdr.frameCount = hires->getFrameCount();
-	hdr.format = hires->getFormat();
-	hdr.mipmapCount = hires->getMipmapCount();
+	hdr.width = hires->width();
+	hdr.height = hires->height();
+	hdr.frameCount = hires->frameCount();
+	hdr.format = hires->format();
+	hdr.mipmapCount = hires->mipmapCount();
 	
-	hdr.lowresFormat = lowres->getFormat();
-	hdr.lowresWidth = lowres->getWidth();
-	hdr.lowresHeight = lowres->getHeight();
+	if (lowres) {
+		hdr.lowresFormat = lowres->format();
+		hdr.lowresWidth = lowres->width();
+		hdr.lowresHeight = lowres->height();
+	}
 	
 	/* base header size */
 	switch (version) {
-		case 0:  hdr.headerSize = 104; break;
-		case 2:  hdr.headerSize = 104; break;
+		case 0:  hdr.headerSize = 80; break;
+		case 2:  hdr.headerSize = 80;  break; /* + */
 		case 3:  hdr.headerSize = 104; break;
-		case 4:
-		default: hdr.headerSize = 104;
+		case 4:  hdr.headerSize = 104; break; /* + */
+		default:
+			throw Exception ("Unsupported version");
 	}
 	
 	/*  */
@@ -555,6 +590,10 @@ void File::save(std::ostream& stm, uint32_t version)
 	if (hdr.version[1] >= 3) {
 		
 	}
+	
+	if (lowres)
+		lowres->write (stm);
+	hires->write (stm);
 }
 
 

@@ -70,42 +70,42 @@ private:
 class ImageResource : public Resource
 {
 public:
-	ImageResource(Type type) : Resource(type), mFormat(FormatNone),
-			mWidth(0), mHeight(0)
+	ImageResource(Type type) : Resource(type), m_Format(FormatNone), m_Width(0), m_Height(0)
 		{}
 	
-	inline Format getFormat()
-		{return mFormat;}
+	inline Format format () const
+		{return m_Format;}
 	
-	inline uint16_t getWidth()
-		{return mWidth;}
+	inline uint16_t width () const
+		{return m_Width;}
 	
-	inline uint16_t getHeight()
-		{return mHeight;}
+	inline uint16_t height () const
+		{return m_Height;}
 	
 protected:
-	Format mFormat;
-	uint16_t mWidth;
-	uint16_t mHeight;
+	Format m_Format;
+	uint16_t m_Width;
+	uint16_t m_Height;
 };
 
 
 class LowresImageResource : public ImageResource
 {
 public:
-	inline LowresImageResource() : ImageResource(TypeLowres), mImage(NULL)
+	inline LowresImageResource() : ImageResource(TypeLowres), m_Image(NULL)
 		{}
 	
 	inline ~LowresImageResource()
-		{ if (mImage) delete[] mImage; }
+		{ if (m_Image) delete[] m_Image; }
 	
 	void read(std::istream& stm, uint32_t offset, Format format,
 			uint16_t width, uint16_t height);
 	
 	void setup(Format format, uint16_t width, uint16_t height);
+	void write (std::ostream& stm) const;
 	
 private:
-	uint8_t* mImage;
+	uint8_t* m_Image;
 };
 
 
@@ -121,14 +121,14 @@ public:
 			uint16_t width, uint16_t height, uint16_t depth,
 			uint8_t mipmaps, uint16_t frames);
 	
-	inline uint16_t getDepth()
-		{return mDepth;}
+	inline uint16_t depth()
+		{return m_Depth;}
 	
-	inline uint32_t getFrameCount()
-		{return mFrameCount;}
+	inline uint32_t frameCount()
+		{return m_FrameCount;}
 	
-	inline uint8_t getMipmapCount()
-		{return mMipmapCount;}
+	inline uint8_t mipmapCount()
+		{return m_MipmapCount;}
 	
 	uint8_t* getImage(uint8_t mipmap, uint16_t frame, uint16_t face, uint16_t slice);
 	uint8_t* getImageRGBA(uint8_t mipmap, uint16_t frame, uint16_t face, uint16_t slice);
@@ -138,12 +138,12 @@ public:
 			uint16_t faces, uint16_t slices);
 	void setImage(uint8_t mipmap, uint16_t frame, uint16_t face, uint16_t slice, uint8_t* data);
 	bool check();
+	void write (std::ostream& stm);
 	
 protected:
-	uint16_t mDepth;
-	
-	uint8_t mMipmapCount;
-	uint16_t mFrameCount;
+	uint16_t m_Depth;
+	uint8_t m_MipmapCount;
+	uint16_t m_FrameCount;
 	
 	typedef std::vector<uint8_t*>	SliceList;
 	typedef std::vector<SliceList>	FaceList;
@@ -156,20 +156,20 @@ protected:
 class CRCResource : public Resource
 {
 public:
-	inline CRCResource() : Resource(TypeCRC), mCRC(0)
+	inline CRCResource() : Resource(TypeCRC), m_CRC(0)
 		{}
 	
 	inline ~CRCResource()
 		{}
 	
 	inline uint32_t get()
-		{return mCRC;}
+		{return m_CRC;}
 	
 	inline void set(uint32_t crc)
-		{mCRC = crc;}
+		{m_CRC = crc;}
 	
 private:
-	uint32_t mCRC;
+	uint32_t m_CRC;
 };
 
 
@@ -211,7 +211,7 @@ private:
 };
 
 
-const char* formatToString (uint32_t format);
+const char* formatToString (Format format);
 
 
 }
